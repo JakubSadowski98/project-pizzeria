@@ -52,13 +52,13 @@
     menuProduct: Handlebars.compile(document.querySelector(select.templateOf.menuProduct).innerHTML), //metoda "menuProduct" jest tworzona za pomocą biblioteki "Handlebars"
   };
 
-  class Product{ //pusta klasa zawierająca konstruktor
+  class Product{ //klasa, która stanowi szablon dla tworzonych instancji
     constructor(id, data){ //metoda "constructor" inicjuje nową instancje (object) i zwraca ją; przy okazji dodaje do niej właściwości oraz metody
       const thisProduct = this;
       thisProduct.id = id;
       thisProduct.data = data;
-      thisProduct.renderInMenu();
-      console.log('new Product:', thisProduct);
+      thisProduct.renderInMenu(); //wywołanie metody po utworzeniu instancji
+      thisProduct.initAccordion();
     }
 
     renderInMenu(){ //metoda, która będzie renderować – czyli tworzyć – nasze produkty na stronie (elementy DOM)
@@ -73,6 +73,29 @@
       /* add element to menu */
       menuContainer.appendChild(thisProduct.element); //metada "appendChild" wstawia nowy element-dziecko na koniec wybranego elementu-rodzica
     }
+
+    initAccordion(){
+      const thisProduct = this;
+
+      /* find the clickable trigger (the element that should react to clicking) */
+      const clickableTrigger = thisProduct.element.querySelector(select.menuProduct.clickable); //szukamy trigerra w (!) nowo utworzonym elemencie-produkcie
+
+      /* START: add event listener to clickable trigger on event click */
+      clickableTrigger.addEventListener('click', function(event){ //podajemy anonimową (nienazwaną) funkcję jako drugi argument metody - referencja do funkcji callback
+        /* prevent default action for event */
+        event.preventDefault();
+        /* find active product (product that has active class) */
+        const activeProduct = document.querySelector('.product.active');
+        /* if there is active product and it's not thisProduct.element, remove class active from it */
+        if (activeProduct != null && activeProduct != thisProduct.element){ //sprawdzenie czy aktywny produkt nie jest tym, który został kliknięty
+          activeProduct.classList.remove(classNames.menuProduct.wrapperActive); //zwija produkt, usuwając klasę "active"
+        }
+        /* toggle active class on thisProduct.element */
+        thisProduct.element.classList.toggle(classNames.menuProduct.wrapperActive);
+      });
+    }
+
+
   }
 
   const app = { //obiekt, który pomaga w organizacji kodu aplikacji; jego rolą jest tworzenie nowych instancji i ich wykorzystywanie
