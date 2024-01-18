@@ -61,7 +61,7 @@
       console.log('new Product:', thisProduct);
     }
 
-    renderInMenu(){ //metoda, która będzie renderować – czyli tworzyć – nasze produkty na stronie
+    renderInMenu(){ //metoda, która będzie renderować – czyli tworzyć – nasze produkty na stronie (elementy DOM)
       const thisProduct = this;
 
       /* generate HTML based on template */
@@ -71,34 +71,33 @@
       /* find menu container */
       const menuContainer = document.querySelector(select.containerOf.menu);
       /* add element to menu */
-      menuContainer.appendChild(thisProduct.element);
+      menuContainer.appendChild(thisProduct.element); //metada "appendChild" wstawia nowy element-dziecko na koniec wybranego elementu-rodzica
     }
   }
 
   const app = { //obiekt, który pomaga w organizacji kodu aplikacji; jego rolą jest tworzenie nowych instancji i ich wykorzystywanie
-    initMenu: function(){ //metoda, która pośredniczy w tworzeniu instancji wg szablonu klasy "Product"
+    initMenu: function(){ //metoda, która pośredniczy w tworzeniu instancji wg szablonu klasy "Product", korzystajac z pobranych danych przez "initData"
       const thisApp = this;
 
-      console.log('thisApp.data:', thisApp.data);
-
       for(let productData in thisApp.data.products){ //pętla przechodzi po właściwościach obiektu "products", czyli cake, breakfast, itd.
-        new Product(productData, thisApp.data.products[productData]); //instancję klasy tworzymy za pomocą słowa kluczowego new, nazwy klasy, oraz argumentów przekazywanych do konstruktora klasy (czyli nazwę właściwości oraz wartość)
+        new Product(productData, thisApp.data.products[productData]); //instancję klasy tworzymy za pomocą słowa kluczowego new, nazwy klasy, oraz argumentów przekazywanych do konstruktora klasy (czyli klucz właściwości oraz wartość właściwości)
       }
     },
 
-    initData: function(){
+    initData: function(){ //metoda, która pobiera dane z obiektu "dataSource" w pliku data.js
       const thisApp = this;
 
-      thisApp.data = dataSource; //pobranie danych z obiektu "dataSource" w pliku data.js
+      thisApp.data = dataSource; //zapisanie pobranych danych do właściwości obieku "app", zatem będą one dostępne w całym obiekcie (również dla pozostałych metod tego obiektu)
     },
 
     init: function(){ //metoda, która będzie uruchamiać wszystkie pozostałe komponenty strony, za pośrednictwem innych metod z obiektu "app"
       const thisApp = this;
       console.log('*** App starting ***');
-      console.log('thisApp:', thisApp);
-      console.log('classNames:', classNames);
-      console.log('settings:', settings);
-      console.log('templates:', templates);
+      //console.log('thisApp:', thisApp);
+      //console.log('classNames:', classNames);
+      //console.log('settings:', settings);
+      //console.log('templates:', templates);
+
       thisApp.initData();
       thisApp.initMenu();
     },
