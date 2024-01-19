@@ -88,6 +88,8 @@
       thisProduct.formInputs = thisProduct.form.querySelectorAll(select.all.formInputs);
       thisProduct.cartButton = thisProduct.element.querySelector(select.menuProduct.cartButton);
       thisProduct.priceElem = thisProduct.element.querySelector(select.menuProduct.priceElem);
+
+      thisProduct.imageWrapper = thisProduct.element.querySelector(select.menuProduct.imageWrapper);
       }
 
     initAccordion(){ //rozwija/zwija część elementu
@@ -131,27 +133,28 @@
       });
     }
 
-    processOrder(){ //metoda obliczająca cenę produktu za każdym razem od nowa
+    processOrder(){ //metoda obliczająca cenę produktu za każdym razem od nowa; dodatkowo obsługuje obrazki z uwzględnieniem zaznaczonych opcji
       const thisProduct = this;
 
       // covert form to object structure e.g. { sauce: ['tomato'], toppings: ['olives', 'redPeppers']}
-      const formData = utils.serializeFormToObject(thisProduct.form); //dostęp do formularza w formie obiektu, który zawiera zaznaczone opcje (np. olives) parametru (np. toppings) w produktcie
+      const formData = utils.serializeFormToObject(thisProduct.form); //dostęp do formularza w formie obiektu, który zawiera zaznaczone opcje (np. olives) parametru (np. toppings) dla produktu
 
       // set price to default price
       let price = thisProduct.data.price; //domyślna cena produktu
+
       // for every category (param)...
       for(let paramId in thisProduct.data.params) { //e.g. paramId = 'toppings' - pętla "for..in" w zmiennej iteracyjnej zwraca zawsze tylko nazwę właściwości
         // determine param value, e.g. paramId = 'toppings', param = { label: 'Toppings', type: 'checkboxes'... }
         const param = thisProduct.data.params[paramId]; //zapewnia dostęp do całego obiektu dostępnego pod właściwością "paramId"
 
         // for every option in this category
-        for(let optionId in param.options) { //e.g. optionID = 'olives'
+        for(let optionId in param.options) { //e.g. optionId = 'olives'
           // determine option value, e.g. optionId = 'olives', option = { label: 'Olives', price: 2, default: true }
           const option = param.options[optionId]; //zapewnia dostęp do całego obiektu dostępnego pod właściwością "optionId", e.g. olives: {label, price, default}
           // check if there is param with a name of paramId in formData and if it includes optionId
-          if(formData[paramId] && formData[paramId].includes(optionId)){
+          if(formData[paramId] && formData[paramId].includes(optionId)){ //sprawdzenie, czy zaznaczono opcje - czy obiekt "optionId" jest zawarty w obiekcie "paramId"
             // check if the option is not default
-            if(option.default != true) {
+            if(option.default != true){  //uwaga: jeśli obiekt nie ma właściwości "default", to wyrażenie jest prawdzie, ponieważ "undefined" nie jest równe "true"
             // add option price to price variable
             price += option.price;
             }
@@ -162,8 +165,24 @@
             price -= option.price;
             }
           }
+
+          // find image fitted to param-option pair e.g. sauce-tomato
+          const optionImage = thisProduct.imageWrapper.querySelector('.' + paramId + '-' + optionId); //(!)
+          // check if image was found
+          if(optionImage){
+            // check if there is param with a name of paramId in formData and if it includes optionId
+            if(formData[paramId] && formData[paramId].includes(optionId)){
+              // add class active to optionImage
+              optionImage.classList.add(classNames.menuProduct.imageVisible);
+            } else {
+              // remove class active from optionImage
+              optionImage.classList.remove(classNames.menuProduct.imageVisible);
+            }
+          }
+
         }
       }
+      
       // update calculated price in the HTML
       thisProduct.priceElem.innerHTML = price;
     }
