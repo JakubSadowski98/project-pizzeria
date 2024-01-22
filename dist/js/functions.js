@@ -1,4 +1,4 @@
-/* global Handlebars */
+/* global Handlebars, dataSource */
 
 const utils = {}; // eslint-disable-line no-unused-vars
 
@@ -36,6 +36,19 @@ utils.serializeFormToObject = function(form){ //metoda, która po otrzymaniu obi
   return output;
 };
 
+utils.convertDataSourceToDbJson = function(){ // ADD CODE START
+  const productJson = [];
+  for(let key in dataSource.products){
+    productJson.push(Object.assign({id: key}, dataSource.products[key]));
+  }
+
+  console.log(JSON.stringify({product: productJson, order: []}, null, '  '));
+};  // ADD CODE END
+
 Handlebars.registerHelper('ifEquals', function(arg1, arg2, options) {
   return (arg1 == arg2) ? options.fn(this) : options.inverse(this);
 });
+
+Handlebars.registerHelper('joinValues', function(input, options) { // ADD CODE START
+  return Object.values(input).join(options.fn(this));
+}); // ADD CODE END
