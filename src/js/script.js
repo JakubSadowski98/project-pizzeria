@@ -291,6 +291,23 @@
     }
   }
   /* *********************************************************************************************************************************************************************************************************************************************************************************** */
+  class Cart{ //klasa, która obsługuje koszyk i wszystkie jego funkcjonalności
+    constructor(element){
+      const thisCart= this;
+
+      thisCart.products = []; //w tablicy przechowywane są produkty dodane do koszyka
+      thisCart.getElements(element);
+      console.log(thisCart);
+    }
+
+    getElements(element){
+      const thisCart = this;
+
+      thisCart.dom = {}; //w obiekcie przechowywane są referencje do elementów DOM
+      thisCart.dom.wrapper = element;
+    }
+  }
+  /* *********************************************************************************************************************************************************************************************************************************************************************************** */
   const app = { //obiekt, który pomaga w organizacji kodu aplikacji; jego rolą jest tworzenie nowych instancji i ich wykorzystywanie
     initMenu: function(){ //metoda, która pośredniczy w tworzeniu instancji wg szablonu klasy "Product", korzystajac z pobranych danych przez "initData"
       const thisApp = this;
