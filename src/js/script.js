@@ -32,9 +32,7 @@
         linkIncrease: 'a[href="#more"]',
       },
     },
-
-    // CODE ADDED START
-    cart: {
+    cart: { // CODE ADDED START
       productList: '.cart__order-summary',
       toggleTrigger: '.cart__summary',
       totalNumber: `.cart__total-number`,
@@ -46,14 +44,12 @@
       phone: '[name="phone"]',
       address: '[name="address"]',
     },
-
     cartProduct: {
       amountWidget: '.widget-amount',
       price: '.cart__product-price',
       edit: '[href="#edit"]',
       remove: '[href="#remove"]',
-    },
-    // CODE ADDED END
+    }, // CODE ADDED END
   };
 
   const classNames = {
@@ -61,11 +57,9 @@
       wrapperActive: 'active',
       imageVisible: 'active',
     },
-    // CODE ADDED START
-    cart: {
+    cart: { // CODE ADDED START
       wrapperActive: 'active',
-    },
-    // CODE ADDED END
+    }, // CODE ADDED END
   };
 
   const settings = {
@@ -74,19 +68,17 @@
       defaultMin: 1, // CODE CHANGED
       defaultMax: 9, // CODE CHANGED
     },
-    // CODE ADDED START
-    cart: {
+    cart: { // CODE ADDED START
       defaultDeliveryFee: 20,
-    },
-    // CODE ADDED END
+    }, // CODE ADDED END
   };
 
   const templates = {
     menuProduct: Handlebars.compile(document.querySelector(select.templateOf.menuProduct).innerHTML), //metoda "menuProduct" jest tworzona za pomocą biblioteki "Handlebars"
-    cartProduct: Handlebars.compile(document.querySelector(select.templateOf.cartProduct).innerHTML),
+    cartProduct: Handlebars.compile(document.querySelector(select.templateOf.cartProduct).innerHTML), // CODE ADDED
   };
   /* *********************************************************************************************************************************************************************************************************************************************************************************** */
-  class Product{ //klasa, która stanowi szablon dla tworzonych instancji (produkt na stronie)
+  class Product{ //klasa, która stanowi szablon dla tworzonych instancji-produktu
     constructor(id, data){ //metoda "constructor" inicjuje nową instancje (object) i zwraca ją; przy okazji dodaje do instancji właściwości oraz wywołuje dla niej metody
       const thisProduct = this; //(!) referencja do instancji
 
@@ -234,7 +226,7 @@
     }
   }
   /* *********************************************************************************************************************************************************************************************************************************************************************************** */
-  class AmountWidget{ //widget (element interfejsu graficznego, funkcjonalność) wyboru ilości produktów - jego rolą jest nadanie życia inputowi i buttonom liczbowym, tak aby informowały o swoim działaniu inne elementy
+  class AmountWidget{ //klasa widget (element interfejsu graficznego) wyboru ilości produktów - jego rolą jest nadanie życia inputowi i buttonom liczbowym, tak aby informowały o swoim działaniu inne elementy
     constructor(element){ //argumentem jest referencja do widgetu ilości
       const thisWidget = this;
 
@@ -295,7 +287,7 @@
       thisWidget.element.dispatchEvent(event); //metoda "dispatchEvent" emituje obiekt-event na kontener widgetu (tam gdzie są input i buttony)
     }
   }
-
+ 
   /* *********************************************************************************************************************************************************************************************************************************************************************************** */
   const app = { //obiekt, który pomaga w organizacji kodu aplikacji; jego rolą jest tworzenie nowych instancji i ich wykorzystywanie
     initMenu: function(){ //metoda, która pośredniczy w tworzeniu instancji wg szablonu klasy "Product", korzystajac z pobranych danych przez "initData"
