@@ -2,10 +2,11 @@
 
 {
   'use strict';
-/* *********************************************************************************************************************************************************************************************************************************************************************************** */
-  const select = {
+  /* *********************************************************************************************************************************************************************************************************************************************************************************** */
+  const select = {  //(!) referencje do elementów DOM
     templateOf: {
       menuProduct: "#template-menu-product",
+      cartProduct: '#template-cart-product', // CODE ADDED
     },
     containerOf: {
       menu: '#product-list',
@@ -26,11 +27,33 @@
     },
     widgets: {
       amount: {
-        input: 'input[name="amount"]',
+        input: 'input.amount', // CODE CHANGED
         linkDecrease: 'a[href="#less"]',
         linkIncrease: 'a[href="#more"]',
       },
     },
+
+    // CODE ADDED START
+    cart: {
+      productList: '.cart__order-summary',
+      toggleTrigger: '.cart__summary',
+      totalNumber: `.cart__total-number`,
+      totalPrice: '.cart__total-price strong, .cart__order-total .cart__order-price-sum strong',
+      subtotalPrice: '.cart__order-subtotal .cart__order-price-sum strong',
+      deliveryFee: '.cart__order-delivery .cart__order-price-sum strong',
+      form: '.cart__order',
+      formSubmit: '.cart__order [type="submit"]',
+      phone: '[name="phone"]',
+      address: '[name="address"]',
+    },
+
+    cartProduct: {
+      amountWidget: '.widget-amount',
+      price: '.cart__product-price',
+      edit: '[href="#edit"]',
+      remove: '[href="#remove"]',
+    },
+    // CODE ADDED END
   };
 
   const classNames = {
@@ -38,25 +61,36 @@
       wrapperActive: 'active',
       imageVisible: 'active',
     },
+    // CODE ADDED START
+    cart: {
+      wrapperActive: 'active',
+    },
+    // CODE ADDED END
   };
 
   const settings = {
     amountWidget: {
       defaultValue: 1,
-      defaultMin: 0,
-      defaultMax: 10,
+      defaultMin: 1, // CODE CHANGED
+      defaultMax: 9, // CODE CHANGED
     },
+    // CODE ADDED START
+    cart: {
+      defaultDeliveryFee: 20,
+    },
+    // CODE ADDED END
   };
 
   const templates = {
     menuProduct: Handlebars.compile(document.querySelector(select.templateOf.menuProduct).innerHTML), //metoda "menuProduct" jest tworzona za pomocą biblioteki "Handlebars"
+    cartProduct: Handlebars.compile(document.querySelector(select.templateOf.cartProduct).innerHTML),
   };
-/* *********************************************************************************************************************************************************************************************************************************************************************************** */
+  /* *********************************************************************************************************************************************************************************************************************************************************************************** */
   class Product{ //klasa, która stanowi szablon dla tworzonych instancji (produkt na stronie)
-    constructor(id, data){ //metoda "constructor" inicjuje nową instancje (object) i zwraca ją; przy okazji dodaje do niej właściwości oraz metody
+    constructor(id, data){ //metoda "constructor" inicjuje nową instancje (object) i zwraca ją; przy okazji dodaje do instancji właściwości oraz wywołuje dla niej metody
       const thisProduct = this; //(!) referencja do instancji
 
-      thisProduct.id = id; //e.g. cake
+      thisProduct.id = id; //e.g. cake - dodanie właściwości do instancji
       thisProduct.data = data; //e.g. {class: 'small', name: "Zio Stefano's Doughnut", price: 9, etc.}
 
       thisProduct.renderInMenu(); //wywołanie metody po utworzeniu instancji
@@ -66,11 +100,11 @@
       thisProduct.initOrderForm();
     }
 
-    renderInMenu(){ //metoda, która będzie renderować – czyli tworzyć – nasze produkty na stronie (elementy DOM)
+    renderInMenu(){ //(!) metoda, która będzie renderować – czyli tworzyć – nasze produkty na stronie (elementy DOM)
       const thisProduct = this;
 
       /* generate HTML based on template */
-      const generatedHTML = templates.menuProduct(thisProduct.data);
+      const generatedHTML = templates.menuProduct(thisProduct.data); //wstawianie kodu HTML do szablonu HANDLEBARS
       /* create element using utils.createElementFromHTML */
       thisProduct.element = utils.createDOMFromHTML(generatedHTML); //(!) stworzony element DOM zapisywany jest jako właściwość instancji, dzięki temu będzie dostęp do niego również w innych metodach instancji
       /* find menu container (element div with class container) */
@@ -90,7 +124,7 @@
       thisProduct.imageWrapper = thisProduct.element.querySelector(select.menuProduct.imageWrapper);
 
       thisProduct.amountWidgetElem = thisProduct.element.querySelector(select.menuProduct.amountWidget);
-      }
+    }
 
     initAccordion(){ //rozwija/zwija część elementu
       const thisProduct = this;
@@ -133,7 +167,7 @@
       });
     }
 
-    processOrder(){ //metoda obliczająca cenę produktu za każdym razem od nowa; dodatkowo obsługuje obrazki z uwzględnieniem zaznaczonych opcji
+    processOrder(){ //metoda obliczająca cenę produktu za każdym razem od nowa; dodatkowo obsługuje pojawiwanie się grafiki z uwzględnieniem zaznaczonych opcji
       const thisProduct = this;
 
       // covert form to object structure e.g. { sauce: ['tomato'], toppings: ['olives', 'redPeppers']}
@@ -188,30 +222,31 @@
       thisProduct.priceElem.innerHTML = price;
     }
 
-    initAmountWidget(){ //metoda odpowiedzialna za utworzenie nowej instancji klasy "AmountWidget" i zapisania jej we właściwości produktu
+    initAmountWidget(){ //metoda odpowiedzialna za utworzenie nowej instancji klasy "AmountWidget"
       const thisProduct = this;
 
-      thisProduct.amountWidget = new AmountWidget(thisProduct.amountWidgetElem);
+      thisProduct.amountWidget = new AmountWidget(thisProduct.amountWidgetElem); //utworzenie instancji z referencją do widgetu ilości (diva z inputem i buttonami) oraz zapisania jej we właściwości produktu
 
-      thisProduct.amountWidgetElem.addEventListener('updated', function(event){ //nasłuchiwanie customowego eventu w klasie "Product"
-        thisProduct.processOrder();
+      thisProduct.amountWidgetElem.addEventListener('updated', function(event){ //nasłuchiwanie customowego eventu 'updated', który informuje instancje "Product" o zmianie wartości w widgecie
+        event.preventDefault();
+        thisProduct.processOrder(); //wywołanie metody, która przeliczy cenę, gdy się dowie o zmianie ilości sztuk
       });
     }
   }
-/* *********************************************************************************************************************************************************************************************************************************************************************************** */
-  class AmountWidget{
-    constructor(element){ //argumentem jest referencja do diva z inputem i buttonami do zmiany ilości sztuk produktu
+  /* *********************************************************************************************************************************************************************************************************************************************************************************** */
+  class AmountWidget{ //widget (element interfejsu graficznego, funkcjonalność) wyboru ilości produktów - jego rolą jest nadanie życia inputowi i buttonom liczbowym, tak aby informowały o swoim działaniu inne elementy
+    constructor(element){ //argumentem jest referencja do widgetu ilości
       const thisWidget = this;
 
       thisWidget.getElements(element); //przekazanie argumentu "element" dalej, jako argument kolejnej metody
       thisWidget.setValue(settings.amountWidget.defaultValue); //wywołanie metody, która ustawi domyślną wartość inputu
-      thisWidget.initActions(); //dodanie reakcji na eventy dla input oraz buttonów "+" i "-"
+      thisWidget.initActions(); //dodanie reakcji na eventy dla input oraz buttonów "+" i "-", czyli zmiana ilości produktu
     }
 
-    getElements(element){ //metoda służąca odnalezieniu trzech elementów - inputu i dwóch buttonów
+    getElements(element){ //metoda służąca odnalezieniu trzech elementów widgetu - inputu i dwóch buttonów
       const thisWidget = this;
 
-      thisWidget.element = element; //zapisanie do instacji właściwości, w których z kolei zapisano elementy widgetu (diva zawierającego input i buttony)
+      thisWidget.element = element; //zapisanie do instacji właściwości, której wartość to referencja do kontenera widgetu
       thisWidget.input = thisWidget.element.querySelector(select.widgets.amount.input);
       thisWidget.linkDecrease = thisWidget.element.querySelector(select.widgets.amount.linkDecrease);
       thisWidget.linkIncrease = thisWidget.element.querySelector(select.widgets.amount.linkIncrease);
@@ -225,7 +260,7 @@
       /* Add validation */
       if(thisWidget.value !== newValue && !isNaN(newValue)) { //sprawdza, czy wartość, która jest już aktualnie w "thisWidget.value" jest inna niż wartość, która przychodzi do funkcji "newValue" oraz czy "newValue" nie jest tekstem; operator "!==" oznacza różne wartości i typy danych
         if(newValue >= settings.amountWidget.defaultMin && newValue <= settings.amountWidget.defaultMax){
-          thisWidget.value = newValue;
+          thisWidget.value = newValue; //ustawienie wartości ilości sztuk produktu
         }
       }
 
@@ -238,7 +273,7 @@
       const thisWidget = this;
 
       thisWidget.input.addEventListener('change', function(event){
-        //event.preventDefault();
+        event.preventDefault();
         thisWidget.setValue(thisWidget.input.value);
       });
 
@@ -253,15 +288,15 @@
       });
     }
 
-    announce(){ //metoda, która tworzy instancje (obiekt-event) klasy "Event" wbudowanej w przeglądarkę - wywołuje event
+    announce(){ //metoda, która tworzy instancje (obiekt-event) klasy "Event" wbudowanej w przeglądarkę - dzięki temu "AmountWidget" będzie informował inne elementy (np. instancje "Product") o zmianie ilości
       const thisWidget = this;
 
       const event = new Event('updated'); //"update" to nazwa customowego eventu
-      thisWidget.element.dispatchEvent(event); //metoda "dispatchEvent" emituje obiekt-event na kontener widgetu
+      thisWidget.element.dispatchEvent(event); //metoda "dispatchEvent" emituje obiekt-event na kontener widgetu (tam gdzie są input i buttony)
     }
   }
 
-/* *********************************************************************************************************************************************************************************************************************************************************************************** */
+  /* *********************************************************************************************************************************************************************************************************************************************************************************** */
   const app = { //obiekt, który pomaga w organizacji kodu aplikacji; jego rolą jest tworzenie nowych instancji i ich wykorzystywanie
     initMenu: function(){ //metoda, która pośredniczy w tworzeniu instancji wg szablonu klasy "Product", korzystajac z pobranych danych przez "initData"
       const thisApp = this;
