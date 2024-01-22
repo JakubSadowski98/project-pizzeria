@@ -95,65 +95,67 @@
     renderInMenu(){ //(!) metoda, która będzie renderować – czyli tworzyć – nasze produkty na stronie (elementy DOM)
       const thisProduct = this;
 
+      // create dom object storing references to DOM elements
+      thisProduct.dom = {}; //w obiekcie przechowywane są referencje do elementów DOM
       /* generate HTML based on template */
       const generatedHTML = templates.menuProduct(thisProduct.data); //wstawianie kodu HTML do szablonu HANDLEBARS
       /* create element using utils.createElementFromHTML */
-      thisProduct.element = utils.createDOMFromHTML(generatedHTML); //(!) stworzony element DOM zapisywany jest jako właściwość instancji, dzięki temu będzie dostęp do niego również w innych metodach instancji
+      thisProduct.dom.element = utils.createDOMFromHTML(generatedHTML); //(!) stworzony element DOM zapisywany jest do właściwości instancji "Product", dzięki temu będzie dostęp do niego również w innych metodach instancji
       /* find menu container (element div with class container) */
       const menuContainer = document.querySelector(select.containerOf.menu);
       /* add element to menu */
-      menuContainer.appendChild(thisProduct.element); //metada "appendChild" wstawia nowy element-dziecko na koniec wybranego elementu-rodzica
+      menuContainer.appendChild(thisProduct.dom.element); //metada "appendChild" wstawia nowy element-dziecko na koniec wybranego elementu-rodzica
     }
 
     getElements(){ //metoda służąca odnalezieniu elementów w kontenerze produktu
       const thisProduct = this;
 
-      thisProduct.accordionTrigger = thisProduct.element.querySelector(select.menuProduct.clickable); //zapisanie we właściwościach instancji referencji do elementów w kontenerze produktu, aby móc z nich korzystać w innych metodach; (!) danej referencji szukamy w kontenerze pojedynczego produktu ("thisProduct.element") a nie w całym dokumencie ("document")
-      thisProduct.form = thisProduct.element.querySelector(select.menuProduct.form);
-      thisProduct.formInputs = thisProduct.form.querySelectorAll(select.all.formInputs);
-      thisProduct.cartButton = thisProduct.element.querySelector(select.menuProduct.cartButton);
-      thisProduct.priceElem = thisProduct.element.querySelector(select.menuProduct.priceElem);
-      thisProduct.imageWrapper = thisProduct.element.querySelector(select.menuProduct.imageWrapper);
+      thisProduct.dom.accordionTrigger = thisProduct.dom.element.querySelector(select.menuProduct.clickable); //zapisanie we właściwościach instancji referencji do elementów w kontenerze produktu, aby móc z nich korzystać w innych metodach; (!) danej referencji szukamy w kontenerze pojedynczego produktu ("thisProduct.dom.element") a nie w całym dokumencie ("document")
+      thisProduct.dom.form = thisProduct.dom.element.querySelector(select.menuProduct.form);
+      thisProduct.dom.formInputs = thisProduct.dom.form.querySelectorAll(select.all.formInputs);
+      thisProduct.dom.cartButton = thisProduct.dom.element.querySelector(select.menuProduct.cartButton);
+      thisProduct.dom.priceElem = thisProduct.dom.element.querySelector(select.menuProduct.priceElem);
+      thisProduct.dom.imageWrapper = thisProduct.dom.element.querySelector(select.menuProduct.imageWrapper);
 
-      thisProduct.amountWidgetElem = thisProduct.element.querySelector(select.menuProduct.amountWidget);
+      thisProduct.dom.amountWidgetElem = thisProduct.dom.element.querySelector(select.menuProduct.amountWidget);
     }
 
     initAccordion(){ //rozwija/zwija część elementu
       const thisProduct = this;
 
       /* find the clickable trigger (the element that should react to clicking) */
-      //const clickableTrigger = thisProduct.element.querySelector(select.menuProduct.clickable); //szukamy trigerra w (!) nowo utworzonym elemencie-produkcie
+      //const clickableTrigger = thisProduct.dom.element.querySelector(select.menuProduct.clickable); //szukamy trigerra w (!) nowo utworzonym elemencie-produkcie
 
       /* START: add event listener to clickable trigger on event click */
-      thisProduct.accordionTrigger.addEventListener('click', function(event){ //podajemy anonimową (nienazwaną) funkcję jako drugi argument metody - referencja do funkcji callback
+      thisProduct.dom.accordionTrigger.addEventListener('click', function(event){ //podajemy anonimową (nienazwaną) funkcję jako drugi argument metody - referencja do funkcji callback
         /* prevent default action for event */
         event.preventDefault();
         /* find active product (product that has active class) */
         const activeProduct = document.querySelector('.product.active');
-        /* if there is active product and it's not thisProduct.element, remove class active from it */
-        if (activeProduct != null && activeProduct != thisProduct.element){ //sprawdzenie czy aktywny produkt nie jest tym, który został kliknięty
+        /* if there is active product and it's not thisProduct.dom.element, remove class active from it */
+        if (activeProduct != null && activeProduct != thisProduct.dom.element){ //sprawdzenie czy aktywny produkt nie jest tym, który został kliknięty
           activeProduct.classList.remove(classNames.menuProduct.wrapperActive); //zwija produkt, usuwając klasę "active"
         }
-        /* toggle active class on thisProduct.element */
-        thisProduct.element.classList.toggle(classNames.menuProduct.wrapperActive);
+        /* toggle active class on thisProduct.dom.element */
+        thisProduct.dom.element.classList.toggle(classNames.menuProduct.wrapperActive);
       });
     }
 
     initOrderForm(){ //metoda odpowiedzialna za dodanie event listenerów do formularza, jego kontrolek, oraz guzika dodania do koszyka
       const thisProduct = this;
 
-      thisProduct.form.addEventListener('submit', function(event){
+      thisProduct.dom.form.addEventListener('submit', function(event){
         event.preventDefault(); //blokujemy domyślną akcję – wysłanie formularza z przeładowaniem strony (klawisz "enter") - to pozwoli obliczyć cenę produktu bez przeładowania strony
         thisProduct.processOrder();
       });
 
-      for(let input of thisProduct.formInputs){ //kontrolki formularza zawarte w elementach input i select
+      for(let input of thisProduct.dom.formInputs){ //kontrolki formularza zawarte w elementach input i select
         input.addEventListener('change', function(){ //jeśli zaznaczono opcje to uruchamia funkcję callback
         thisProduct.processOrder();
         });
       }
 
-      thisProduct.cartButton.addEventListener('click', function(event){
+      thisProduct.dom.cartButton.addEventListener('click', function(event){
         event.preventDefault(); //blokujemy domyślną akcję – zmianę adresu strony po kliknięciu w link "Add to card"
         thisProduct.processOrder();
       });
@@ -163,7 +165,7 @@
       const thisProduct = this;
 
       // covert form to object structure e.g. { sauce: ['tomato'], toppings: ['olives', 'redPeppers']}
-      const formData = utils.serializeFormToObject(thisProduct.form); //dostęp do formularza w formie obiektu, który zawiera zaznaczone opcje (np. olives) parametru (np. toppings) dla produktu
+      const formData = utils.serializeFormToObject(thisProduct.dom.form); //dostęp do formularza w formie obiektu, który zawiera zaznaczone opcje (np. olives) parametru (np. toppings) dla produktu
 
       // set price to default price
       let price = thisProduct.data.price; //domyślna cena produktu
@@ -193,7 +195,7 @@
           }
 
           // find image fitted to param-option pair e.g. sauce-tomato
-          const optionImage = thisProduct.imageWrapper.querySelector('.' + paramId + '-' + optionId); //(!)
+          const optionImage = thisProduct.dom.imageWrapper.querySelector('.' + paramId + '-' + optionId); //(!)
           // check if image was found
           if(optionImage){
             // check if there is param with a name of paramId in formData and if it includes optionId
@@ -211,15 +213,15 @@
       // multiply price by amount
       price *= thisProduct.amountWidget.value;
       // update calculated price in the HTML
-      thisProduct.priceElem.innerHTML = price;
+      thisProduct.dom.priceElem.innerHTML = price;
     }
 
     initAmountWidget(){ //metoda odpowiedzialna za utworzenie nowej instancji klasy "AmountWidget"
       const thisProduct = this;
 
-      thisProduct.amountWidget = new AmountWidget(thisProduct.amountWidgetElem); //utworzenie instancji z referencją do widgetu ilości (diva z inputem i buttonami) oraz zapisania jej we właściwości produktu
+      thisProduct.amountWidget = new AmountWidget(thisProduct.dom.amountWidgetElem); //utworzenie instancji klasy "AmountWidget"; przypisanie do właściwości instancji "Product" referencji do instancji "AmountWidget"
 
-      thisProduct.amountWidgetElem.addEventListener('updated', function(event){ //nasłuchiwanie customowego eventu 'updated', który informuje instancje "Product" o zmianie wartości w widgecie
+      thisProduct.dom.amountWidgetElem.addEventListener('updated', function(event){ //nasłuchiwanie customowego eventu 'updated', który informuje instancje "Product" o zmianie wartości w widgecie
         event.preventDefault();
         thisProduct.processOrder(); //wywołanie metody, która przeliczy cenę, gdy się dowie o zmianie ilości sztuk
       });
@@ -227,7 +229,7 @@
   }
   /* *********************************************************************************************************************************************************************************************************************************************************************************** */
   class AmountWidget{ //klasa widget (element interfejsu graficznego) wyboru ilości produktów - jego rolą jest nadanie życia inputowi i buttonom liczbowym, tak aby informowały o swoim działaniu inne elementy
-    constructor(element){ //argumentem jest referencja do widgetu ilości
+    constructor(element){ //argumentem jest referencja do widgetu zmiany ilości
       const thisWidget = this;
 
       thisWidget.getElements(element); //przekazanie argumentu "element" dalej, jako argument kolejnej metody
@@ -238,10 +240,11 @@
     getElements(element){ //metoda służąca odnalezieniu trzech elementów widgetu - inputu i dwóch buttonów
       const thisWidget = this;
 
-      thisWidget.element = element; //zapisanie do instacji właściwości, której wartość to referencja do kontenera widgetu
-      thisWidget.input = thisWidget.element.querySelector(select.widgets.amount.input);
-      thisWidget.linkDecrease = thisWidget.element.querySelector(select.widgets.amount.linkDecrease);
-      thisWidget.linkIncrease = thisWidget.element.querySelector(select.widgets.amount.linkIncrease);
+      thisWidget.dom = {}; //w obiekcie przechowywane są referencje do elementów DOM
+      thisWidget.dom.element = element; //przypisanie do właściwości instancji "AmountWidget" referencji do kontenera widgetu
+      thisWidget.dom.input = thisWidget.dom.element.querySelector(select.widgets.amount.input);
+      thisWidget.dom.linkDecrease = thisWidget.dom.element.querySelector(select.widgets.amount.linkDecrease);
+      thisWidget.dom.linkIncrease = thisWidget.dom.element.querySelector(select.widgets.amount.linkIncrease);
     }
 
     setValue(value){ //metoda będzie uruchamiana przy próbie zmiany wartości (w input) i decydować, czy ma na to pozwolić, czy może przywrócić starą (ostatnią dobrą) wartość
@@ -256,7 +259,7 @@
         }
       }
 
-      thisWidget.input.value = thisWidget.value; //aktualizowanie wartości dla właściwości "value" w input
+      thisWidget.dom.input.value = thisWidget.value; //aktualizowanie wartości dla właściwości "value" w input
 
       thisWidget.announce(); //wywołanie customowego eventu
     }
@@ -264,17 +267,17 @@
     initActions(){
       const thisWidget = this;
 
-      thisWidget.input.addEventListener('change', function(event){
+      thisWidget.dom.input.addEventListener('change', function(event){
         event.preventDefault();
-        thisWidget.setValue(thisWidget.input.value);
+        thisWidget.setValue(thisWidget.dom.input.value);
       });
 
-      thisWidget.linkDecrease.addEventListener('click', function(event){
+      thisWidget.dom.linkDecrease.addEventListener('click', function(event){
         event.preventDefault();
         thisWidget.setValue(thisWidget.value - 1);
       });
 
-      thisWidget.linkIncrease.addEventListener('click', function(event){
+      thisWidget.dom.linkIncrease.addEventListener('click', function(event){
         event.preventDefault();
         thisWidget.setValue(thisWidget.value + 1);
       });
@@ -284,10 +287,9 @@
       const thisWidget = this;
 
       const event = new Event('updated'); //"update" to nazwa customowego eventu
-      thisWidget.element.dispatchEvent(event); //metoda "dispatchEvent" emituje obiekt-event na kontener widgetu (tam gdzie są input i buttony)
+      thisWidget.dom.element.dispatchEvent(event); //metoda "dispatchEvent" emituje obiekt-event na kontener widgetu (tam gdzie są input i buttony)
     }
   }
- 
   /* *********************************************************************************************************************************************************************************************************************************************************************************** */
   const app = { //obiekt, który pomaga w organizacji kodu aplikacji; jego rolą jest tworzenie nowych instancji i ich wykorzystywanie
     initMenu: function(){ //metoda, która pośredniczy w tworzeniu instancji wg szablonu klasy "Product", korzystajac z pobranych danych przez "initData"
