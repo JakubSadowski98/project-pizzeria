@@ -297,14 +297,26 @@
 
       thisCart.products = []; //w tablicy przechowywane są produkty dodane do koszyka
       thisCart.getElements(element);
+      thisCart.initActions();
 
     }
 
-    getElements(element){
+    getElements(element){ //znajduje kontener koszyka oraz elementy znajdujące się w nim
       const thisCart = this;
 
       thisCart.dom = {}; //w obiekcie przechowywane są referencje do elementów DOM
       thisCart.dom.wrapper = element;
+
+      thisCart.dom.toggleTrigger = thisCart.dom.wrapper.querySelector(select.cart.toggleTrigger);
+    }
+
+    initActions(){ //rozwija/zwija koszyk
+      const thisCart = this;
+
+      thisCart.dom.toggleTrigger.addEventListener('click', function(event){
+        event.preventDefault();
+        thisCart.dom.wrapper.classList.toggle(classNames.cart.wrapperActive);
+      });
     }
   }
   /* *********************************************************************************************************************************************************************************************************************************************************************************** */
@@ -326,7 +338,7 @@
     initCart: function(){
       const thisApp = this;
 
-      const cartElem = document.querySelector(select.containerOf.cart);
+      const cartElem = document.querySelector(select.containerOf.cart); //wyszukuje kontener dla koszyka
       thisApp.cart = new Cart(cartElem); //referencja do instancji "Cart" jest zapisana do "thisApp.cart"
     },
 
