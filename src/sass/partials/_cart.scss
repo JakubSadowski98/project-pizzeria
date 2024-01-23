@@ -6,7 +6,7 @@
   padding: ($base-size) ($base-size * 1.5);
   background: $color-light;
   border-radius: $radius;
-  color: $color-main;
+  color: $color-main;;
   font-size: $base-size;
   box-shadow: 0 0 $base-size rgba(0, 0, 0, 0.2);
   z-index: 9999;
@@ -68,7 +68,6 @@
       &:hover .btn-quantity--lt {
         opacity: 1;
       }
-
     }
 
   }

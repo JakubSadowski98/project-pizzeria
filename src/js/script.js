@@ -108,7 +108,7 @@
       menuContainer.appendChild(thisProduct.dom.element); //metada "appendChild" wstawia nowy element-dziecko na koniec wybranego elementu-rodzica
     }
 
-    getElements(){ //metoda służąca odnalezieniu elementów w kontenerze produktu
+    getElements(){ //metoda służąca odnalezieniu elementów DOM; przypisuje referencje do elementów znajdujących się w kontenerze "element"
       const thisProduct = this;
 
       thisProduct.dom.accordionTrigger = thisProduct.dom.element.querySelector(select.menuProduct.clickable); //zapisanie we właściwościach instancji referencji do elementów w kontenerze produktu, aby móc z nich korzystać w innych metodach; (!) danej referencji szukamy w kontenerze pojedynczego produktu ("thisProduct.dom.element") a nie w całym dokumencie ("document")
@@ -196,7 +196,7 @@
             }
           }
           // find image fitted to param-option pair e.g. sauce-tomato
-          const optionImage = thisProduct.dom.imageWrapper.querySelector('.' + paramId + '-' + optionId); //(!)
+          const optionImage = thisProduct.dom.imageWrapper.querySelector('.' + paramId + '-' + optionId); //(!)sam to wymyśliłem
           // check if image was found
           if(optionImage){
             // check if there is param with a name of paramId in formData and if it includes optionId
@@ -239,12 +239,12 @@
       const thisProduct = this;
 
       const productSummary = {}; //obiekt, który posiada niezbędne dane dla koszyka
-      productSummary.id = thisProduct.id;
-      productSummary.name = thisProduct.data.name;
       productSummary.amount = thisProduct.amountWidget.value;
+      productSummary.name = thisProduct.data.name;
       productSummary.priceSingle = thisProduct.priceSingle; //cena jednostkowa
-      productSummary.price = productSummary.priceSingle * productSummary.amount; //cena całkowita
       productSummary.params = thisProduct.prepareCartProductParams(); //zawiera kategorie (e.g. "toppings") i opcje (e.g. "olives") zamówionego produktu
+      productSummary.id = thisProduct.id;
+      productSummary.price = productSummary.priceSingle * productSummary.amount; //cena całkowita
 
       return productSummary;
     }
@@ -341,11 +341,11 @@
     }
   }
   /* *********************************************************************************************************************************************************************************************************************************************************************************** */
-  class Cart{ //klasa, która obsługuje koszyk i wszystkie jego funkcjonalności
+  class Cart{ //obsługuje cały koszyk i wszystkie jego funkcjonalności
     constructor(element){
       const thisCart= this;
 
-      thisCart.products = []; //w tablicy przechowywane są produkty dodane do koszyka
+      thisCart.products = []; //(!) w tablicy przechowywane są produkty (instancje klasy "CartProduct") dodane do koszyka
       thisCart.getElements(element);
       thisCart.initActions();
 
@@ -369,7 +369,7 @@
       });
     }
 
-    add(menuProduct){ //dodaje dane zamawianego produktu do koszyka; "menuProduct" zawiera referencję do instancji "Product"
+    add(menuProduct){ //dodaje dane zamawianego produktu do koszyka; argument "menuProduct" zawiera referencję do obiektu "productSummary"
       const thisCart = this;
 
       /* generate HTML based on template using "templates.cartProduct" */
@@ -377,7 +377,36 @@
       /* create element using "utils.createElementFromHTML" */
       const generatedDOM = utils.createDOMFromHTML(generatedHTML);
       /* add element to menu using "appendChild" */
-      thisCart.dom.productList.appendChild(generatedDOM); 
+      thisCart.dom.productList.appendChild(generatedDOM);
+      console.log(generatedHTML);
+      thisCart.products.push(new CartProduct(menuProduct, generatedDOM)); //utworzenie oraz dodanie instancji klasy "CartProduct" do tablicy
+    }
+  }
+
+  class CartProduct{ //obsługuje pojedyncze produkty, które znajdują się w koszyku
+    constructor(menuProduct, element){ //arg1 - referencja do "productSummary", arg2 - referencja do "generatedDOM"
+      const thisCartProduct= this;
+
+      thisCartProduct.id = menuProduct.id;
+      thisCartProduct.name = menuProduct.name;
+      thisCartProduct.params = menuProduct.params;
+      thisCartProduct.priceSingle = menuProduct.priceSingle;
+      thisCartProduct.amount = menuProduct.amount;
+      thisCartProduct.price = menuProduct.price;
+
+      thisCartProduct.getElements(element);
+      //console.log(thisCartProduct);
+    }
+
+    getElements(element){
+      const thisCartProduct= this;
+
+      thisCartProduct.dom = {};
+      thisCartProduct.dom.wrapper = element; //przypisanie referencji do "generatedDOM"
+      thisCartProduct.dom.amountWidget = thisCartProduct.dom.wrapper.querySelector(select.cartProduct.amountWidget);
+      thisCartProduct.dom.price = thisCartProduct.dom.wrapper.querySelector(select.cartProduct.price);
+      thisCartProduct.dom.edit = thisCartProduct.dom.wrapper.querySelector(select.cartProduct.edit);
+      thisCartProduct.dom.remove = thisCartProduct.dom.wrapper.querySelector(select.cartProduct.remove);
     }
   }
   /* *********************************************************************************************************************************************************************************************************************************************************************************** */
