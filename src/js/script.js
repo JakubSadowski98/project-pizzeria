@@ -297,7 +297,7 @@
 
       thisCart.products = []; //w tablicy przechowywane są produkty dodane do koszyka
       thisCart.getElements(element);
-      console.log(thisCart);
+
     }
 
     getElements(element){
@@ -323,6 +323,13 @@
       thisApp.data = dataSource; //zapisanie pobranych danych do właściwości obieku "app", zatem będą one dostępne w całym obiekcie (również dla pozostałych metod tego obiektu)
     },
 
+    initCart: function(){
+      const thisApp = this;
+
+      const cartElem = document.querySelector(select.containerOf.cart);
+      thisApp.cart = new Cart(cartElem); //referencja do instancji "Cart" jest zapisana do "thisApp.cart"
+    },
+
     init: function(){ //metoda, która będzie uruchamiać wszystkie pozostałe komponenty strony, za pośrednictwem innych metod z obiektu "app"
       const thisApp = this;
       console.log('*** App starting ***');
@@ -333,6 +340,7 @@
 
       thisApp.initData();
       thisApp.initMenu();
+      thisApp.initCart();
     },
   };
 
