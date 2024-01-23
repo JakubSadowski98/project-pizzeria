@@ -90,6 +90,7 @@
       thisProduct.initAccordion();
       thisProduct.initAmountWidget(); //new
       thisProduct.initOrderForm();
+      thisProduct.processOrder()
     }
 
     renderInMenu(){ //(!) metoda, która będzie renderować – czyli tworzyć – nasze produkty na stronie (elementy DOM)
@@ -151,13 +152,14 @@
 
       for(let input of thisProduct.dom.formInputs){ //kontrolki formularza zawarte w elementach input i select
         input.addEventListener('change', function(){ //jeśli zaznaczono opcje to uruchamia funkcję callback
-        thisProduct.processOrder();
+          thisProduct.processOrder();
         });
       }
 
-      thisProduct.dom.cartButton.addEventListener('click', function(event){
+      thisProduct.dom.cartButton.addEventListener('click', function(event){ //button "ADD TO CART"
         event.preventDefault(); //blokujemy domyślną akcję – zmianę adresu strony po kliknięciu w link "Add to card"
         thisProduct.processOrder();
+        thisProduct.addToCart(); //uruchamia metodę, która przekazuje referencję do obiektu "productSummary" jako argument metody "add()" klasy "Cart"
       });
     }
 
@@ -193,7 +195,6 @@
             price -= option.price;
             }
           }
-
           // find image fitted to param-option pair e.g. sauce-tomato
           const optionImage = thisProduct.dom.imageWrapper.querySelector('.' + paramId + '-' + optionId); //(!)
           // check if image was found
@@ -207,9 +208,10 @@
               optionImage.classList.remove(classNames.menuProduct.imageVisible);
             }
           }
-
         }
       }
+      // update calculated price (amount = 1) in the JS
+      thisProduct.priceSingle = price;
       // multiply price by amount
       price *= thisProduct.amountWidget.value;
       // update calculated price in the HTML
@@ -225,6 +227,54 @@
         event.preventDefault();
         thisProduct.processOrder(); //wywołanie metody, która przeliczy cenę, gdy się dowie o zmianie ilości sztuk
       });
+    }
+
+    addToCart(){ //przesyła dane zamawianego produktu
+      const thisProduct = this;
+
+      app.cart.add(thisProduct.prepareCartProduct()); //wywołanie metody "add()" z referencją do obiektu "productSummary"
+    }
+
+    prepareCartProduct(){ //zapisuje dane zamawianego produktu
+      const thisProduct = this;
+
+      const productSummary = {}; //obiekt, który posiada niezbędne dane dla koszyka
+      productSummary.id = thisProduct.id;
+      productSummary.name = thisProduct.data.name;
+      productSummary.amount = thisProduct.amountWidget.value;
+      productSummary.priceSingle = thisProduct.priceSingle; //cena jednostkowa
+      productSummary.price = productSummary.priceSingle * productSummary.amount; //cena całkowita
+      productSummary.params = thisProduct.prepareCartProductParams(); //zawiera kategorie (e.g. "toppings") i opcje (e.g. "olives") zamówionego produktu
+
+      return productSummary;
+    }
+
+    prepareCartProductParams(){ //przygotowuje obiekt podsumujący wybrane opcje zamówionego produktu
+      const thisProduct = this;
+
+      const formData = utils.serializeFormToObject(thisProduct.dom.form); //dostęp do formularza w formie obiektu, który zawiera zaznaczone opcje
+      const params = {}; //zawiera kategorie (e.g. "toppings") i opcje (e.g. "olives") zamówionego produktu
+      // for every category (param)...
+      for(let paramId in thisProduct.data.params) { //e.g. paramId = 'toppings' - pętla "for..in" w zmiennej iteracyjnej zwraca zawsze tylko nazwę właściwości
+        // determine param value, e.g. paramId = 'toppings', param = { label: 'Toppings', type: 'checkboxes'... }
+        const param = thisProduct.data.params[paramId]; //zapewnia dostęp do całego obiektu dostępnego pod właściwością "paramId", e.g. toppings: {label: 'Toppings', type: 'checkboxes', options: {}}
+        // create category "paramId" in "params" const eg. params = { toppings: { label: 'Toppings', options: {}}}
+        params[paramId] = { //(!) po każdej iteracji pętli zewnętrznej dodawany jest obiekt "paramId" do obiektu "params"
+          label: param.label,
+          options: {}
+        }
+        // for every option in this category
+        for(let optionId in param.options) { //e.g. optionId = 'olives'
+          // determine option value, e.g. optionId = 'olives', option = { label: 'Olives', price: 2, default: true }
+          const option = param.options[optionId]; //zapewnia dostęp do całego obiektu dostępnego pod właściwością "optionId", e.g. olives: {label, price, default}
+          // check if there is param with a name of paramId in formData and if it includes optionId
+          if(formData[paramId] && formData[paramId].includes(optionId)){ //sprawdzenie, czy zaznaczono opcje - czy właściwość "optionId" jest zawarta w obiekcie "paramId"
+            // create option "optionId" in "options" object
+            params[paramId].options[optionId] = option.label; //(!) po każdej iteracji pętli wewnętrznej dodawana jest właściwosć "optionId" do obiektu "options"
+          }
+        }
+      }
+      return params;
     }
   }
   /* *********************************************************************************************************************************************************************************************************************************************************************************** */
@@ -306,8 +356,8 @@
 
       thisCart.dom = {}; //w obiekcie przechowywane są referencje do elementów DOM
       thisCart.dom.wrapper = element;
-
       thisCart.dom.toggleTrigger = thisCart.dom.wrapper.querySelector(select.cart.toggleTrigger);
+      thisCart.dom.productList = document.querySelector(select.containerOf.cart);
     }
 
     initActions(){ //rozwija/zwija koszyk
@@ -317,6 +367,17 @@
         event.preventDefault();
         thisCart.dom.wrapper.classList.toggle(classNames.cart.wrapperActive);
       });
+    }
+
+    add(menuProduct){ //dodaje dane zamawianego produktu do koszyka; "menuProduct" zawiera referencję do instancji "Product"
+      const thisCart = this;
+
+      /* generate HTML based on template using "templates.cartProduct" */
+      const generatedHTML = templates.cartProduct(menuProduct);
+      /* create element using "utils.createElementFromHTML" */
+      const generatedDOM = utils.createDOMFromHTML(generatedHTML);
+      /* add element to menu using "appendChild" */
+      thisCart.dom.productList.appendChild(generatedDOM); 
     }
   }
   /* *********************************************************************************************************************************************************************************************************************************************************************************** */
