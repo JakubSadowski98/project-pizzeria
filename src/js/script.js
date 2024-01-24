@@ -278,7 +278,7 @@
     }
   }
   /* *********************************************************************************************************************************************************************************************************************************************************************************** */
-  class AmountWidget{ //klasa widget (element interfejsu graficznego) wyboru ilości produktów - jego rolą jest nadanie życia inputowi i buttonom liczbowym, tak aby informowały o swoim działaniu inne elementy
+  class AmountWidget{ //widget (element interfejsu graficznego) wyboru ilości produktów - jego rolą jest nadanie życia inputowi i buttonom liczbowym, tak aby informowały o swoim działaniu inne elementy
     constructor(element){ //argumentem jest referencja do widgetu zmiany ilości
       const thisWidget = this;
 
@@ -308,7 +308,6 @@
           thisWidget.value = newValue; //ustawienie wartości ilości sztuk produktu
         }
       }
-
       thisWidget.dom.input.value = thisWidget.value; //aktualizowanie wartości dla właściwości "value" w input
 
       thisWidget.announce(); //wywołanie customowego eventu
@@ -342,7 +341,7 @@
   }
   /* *********************************************************************************************************************************************************************************************************************************************************************************** */
   class Cart{ //obsługuje cały koszyk i wszystkie jego funkcjonalności
-    constructor(element){
+    constructor(element){ //argumentem jest referencja do konteneru koszyka
       const thisCart= this;
 
       thisCart.products = []; //(!) w tablicy przechowywane są produkty (instancje klasy "CartProduct") dodane do koszyka
@@ -351,13 +350,18 @@
 
     }
 
-    getElements(element){ //znajduje kontener koszyka oraz elementy znajdujące się w nim
+    getElements(element){ //znajduje elementy znajdujące się w kontenerze koszyka
       const thisCart = this;
 
       thisCart.dom = {}; //w obiekcie przechowywane są referencje do elementów DOM
-      thisCart.dom.wrapper = element;
-      thisCart.dom.toggleTrigger = thisCart.dom.wrapper.querySelector(select.cart.toggleTrigger);
-      thisCart.dom.productList = document.querySelector(select.containerOf.cart);
+      thisCart.dom.wrapper = element; //zapisanie do właściwości referencji do konteneru koszyka (id="cart")
+
+      thisCart.dom.toggleTrigger = thisCart.dom.wrapper.querySelector(select.cart.toggleTrigger); //przypisanie do właściwości referencji do znalezionego elementu "toggleTrigger" w kontenerze koszyka "wrapper"
+      thisCart.dom.productList = thisCart.dom.wrapper.querySelector(select.cart.productList); //(!) referencja do listy zamówionych produktów, wygenerowanej po kliknięciu w "ADD TO CART"
+      thisCart.dom.deliveryFee = thisCart.dom.wrapper.querySelector(select.cart.deliveryFee);
+      thisCart.dom.subtotalPrice = thisCart.dom.wrapper.querySelector(select.cart.subtotalPrice);
+      thisCart.dom.totalPrice = thisCart.dom.wrapper.querySelectorAll(select.cart.totalPrice); //(!) zapisanie do tablicy referencja do dwóch elementów pokazującychy cenę końcową (total price)
+      thisCart.dom.totalNumber = thisCart.dom.wrapper.querySelector(select.cart.totalNumber);
     }
 
     initActions(){ //rozwija/zwija koszyk
@@ -376,10 +380,38 @@
       const generatedHTML = templates.cartProduct(menuProduct);
       /* create element using "utils.createElementFromHTML" */
       const generatedDOM = utils.createDOMFromHTML(generatedHTML);
-      /* add element to menu using "appendChild" */
-      thisCart.dom.productList.appendChild(generatedDOM);
-      console.log(generatedHTML);
+      /* add element to cart wrapper using "appendChild" */
+      thisCart.dom.productList.appendChild(generatedDOM); //dodanie nowego elementu DOM na koniec kontenera koszyka
+
       thisCart.products.push(new CartProduct(menuProduct, generatedDOM)); //utworzenie oraz dodanie instancji klasy "CartProduct" do tablicy
+      thisCart.update();
+    }
+
+    update(){ //przechodzi po wszyskich produktach w koszyku i sumuje kwoty
+      const thisCart = this;
+
+      const deliveryFee = settings.cart.defaultDeliveryFee;
+      let totalNumber = 0; //całościowa liczba sztuk produktów
+      let subtotalPrice = 0; //zsumowana cena wszystkich produktów
+
+      for(let product of thisCart.products){ //iterowanie po wszystkich produktach w koszyku
+        totalNumber += product.amount;
+        subtotalPrice += product.price;
+      }
+
+      if(totalNumber >= 0){ //sprawdzenie, czy zawartość koszyka nie jest pusta
+        thisCart.totalPrice = subtotalPrice + deliveryFee; //doliczenie opłaty za wysyłkę i zapisanie jej do właściwości "totalPrice" (mogą z niej korzystać inne metody)
+
+        thisCart.dom.deliveryFee.innerHTML = deliveryFee;
+        thisCart.dom.totalPrice[0].innerHTML = thisCart.totalPrice;
+        thisCart.dom.totalPrice[1].innerHTML = thisCart.totalPrice;
+      } else {
+        thisCart.totalPrice = subtotalPrice;
+
+        thisCart.dom.totalPrice.innerHTML = thisCart.totalPrice;
+      }
+      thisCart.dom.subtotalPrice.innerHTML = subtotalPrice;
+      thisCart.dom.totalNumber.innerHTML = totalNumber;
     }
   }
 
@@ -395,7 +427,7 @@
       thisCartProduct.price = menuProduct.price;
 
       thisCartProduct.getElements(element);
-      //console.log(thisCartProduct);
+      thisCartProduct.initAmountWidget();
     }
 
     getElements(element){
@@ -407,6 +439,20 @@
       thisCartProduct.dom.price = thisCartProduct.dom.wrapper.querySelector(select.cartProduct.price);
       thisCartProduct.dom.edit = thisCartProduct.dom.wrapper.querySelector(select.cartProduct.edit);
       thisCartProduct.dom.remove = thisCartProduct.dom.wrapper.querySelector(select.cartProduct.remove);
+    }
+
+    initAmountWidget(){
+      const thisCartProduct= this;
+
+      thisCartProduct.amountWidget = new AmountWidget(thisCartProduct.dom.amountWidget); //utworzenie instancji klasy "AmountWidget"; przypisanie do właściwości "amountWidget" referencji do instancji "AmountWidget"
+
+      thisCartProduct.dom.amountWidget.addEventListener('updated', function(event){ //nasłuchiwanie customowego eventu 'updated', który informuje instancje "CartProduct" o zmianie wartości w widget
+        event.preventDefault();
+        thisCartProduct.amount = thisCartProduct.amountWidget.value; //przypisanie aktulnej wartości (czyli liczby sztuk) pobranej z właściwości "value" instancji "AmountWidget"
+        thisCartProduct.price = thisCartProduct.priceSingle * thisCartProduct.amount;
+
+        thisCartProduct.dom.price.innerHTML = thisCartProduct.price; //zaktualizowanie wartości elementu HTML
+      });
     }
   }
   /* *********************************************************************************************************************************************************************************************************************************************************************************** */
@@ -428,17 +474,12 @@
     initCart: function(){
       const thisApp = this;
 
-      const cartElem = document.querySelector(select.containerOf.cart); //wyszukuje kontener dla koszyka
+      const cartElem = document.querySelector(select.containerOf.cart); //wyszukuje kontener koszyka (id="cart")
       thisApp.cart = new Cart(cartElem); //referencja do instancji "Cart" jest zapisana do "thisApp.cart"
     },
 
     init: function(){ //metoda, która będzie uruchamiać wszystkie pozostałe komponenty strony, za pośrednictwem innych metod z obiektu "app"
       const thisApp = this;
-      console.log('*** App starting ***');
-      //console.log('thisApp:', thisApp);
-      //console.log('classNames:', classNames);
-      //console.log('settings:', settings);
-      //console.log('templates:', templates);
 
       thisApp.initData();
       thisApp.initMenu();
