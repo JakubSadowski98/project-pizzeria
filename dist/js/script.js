@@ -221,9 +221,9 @@
     initAmountWidget(){ //metoda odpowiedzialna za utworzenie nowej instancji klasy "AmountWidget"
       const thisProduct = this;
 
-      thisProduct.amountWidget = new AmountWidget(thisProduct.dom.amountWidgetElem); //utworzenie instancji klasy "AmountWidget"; przypisanie do właściwości instancji "Product" referencji do instancji "AmountWidget"
+      thisProduct.amountWidget = new AmountWidget(thisProduct.dom.amountWidgetElem, settings.amountWidget.defaultValue); //utworzenie instancji klasy "AmountWidget"; przypisanie do właściwości instancji "Product" referencji do instancji "AmountWidget"
 
-      thisProduct.dom.amountWidgetElem.addEventListener('updated', function(event){ //nasłuchiwanie customowego eventu 'updated', który informuje instancje "Product" o zmianie wartości w widgecie
+      thisProduct.dom.amountWidgetElem.addEventListener('updated', function(event){ //nasłuchiwanie customowego obiekt-eventu 'updated', który informuje instancje "Product" o zmianie wartości w widget
         event.preventDefault();
         thisProduct.processOrder(); //wywołanie metody, która przeliczy cenę, gdy się dowie o zmianie ilości sztuk
       });
@@ -279,11 +279,11 @@
   }
   /* *********************************************************************************************************************************************************************************************************************************************************************************** */
   class AmountWidget{ //widget (element interfejsu graficznego) wyboru ilości produktów - jego rolą jest nadanie życia inputowi i buttonom liczbowym, tak aby informowały o swoim działaniu inne elementy
-    constructor(element){ //argumentem jest referencja do widgetu zmiany ilości
+    constructor(element,  value){ //argumentem jest referencja do widgetu zmiany ilości
       const thisWidget = this;
 
       thisWidget.getElements(element); //przekazanie argumentu "element" dalej, jako argument kolejnej metody
-      thisWidget.setValue(settings.amountWidget.defaultValue); //wywołanie metody, która ustawi domyślną wartość inputu
+      thisWidget.setValue(value); //wywołanie metody, która ustawi domyślną wartość inputu (czyli "settings.amountWidget.defaultValue" lub "thisCartProduct.amount")
       thisWidget.initActions(); //dodanie reakcji na eventy dla input oraz buttonów "+" i "-", czyli zmiana ilości produktu
     }
 
@@ -301,16 +301,16 @@
       const thisWidget = this;
 
       const newValue = parseInt(value); //przekonwertowanie przekazanego argumentu na liczbę, ponieważ input zwraca wartość w formacie tekstowym
-
       /* Add validation */
       if(thisWidget.value !== newValue && !isNaN(newValue)) { //sprawdza, czy wartość, która jest już aktualnie w "thisWidget.value" jest inna niż wartość, która przychodzi do funkcji "newValue" oraz czy "newValue" nie jest tekstem; operator "!==" oznacza różne wartości i typy danych
         if(newValue >= settings.amountWidget.defaultMin && newValue <= settings.amountWidget.defaultMax){
           thisWidget.value = newValue; //ustawienie wartości ilości sztuk produktu
         }
       }
+
       thisWidget.dom.input.value = thisWidget.value; //aktualizowanie wartości dla właściwości "value" w input
 
-      thisWidget.announce(); //wywołanie customowego eventu
+      thisWidget.announce(); //wywołanie metody, która wysyła customowy event-obiekt z informacją o ustawieniu wartości
     }
 
     initActions(){
@@ -335,8 +335,11 @@
     announce(){ //metoda, która tworzy instancje (obiekt-event) klasy "Event" wbudowanej w przeglądarkę - dzięki temu "AmountWidget" będzie informował inne elementy (np. instancje "Product") o zmianie ilości
       const thisWidget = this;
 
-      const event = new Event('updated'); //"update" to nazwa customowego eventu
-      thisWidget.dom.element.dispatchEvent(event); //metoda "dispatchEvent" emituje obiekt-event na kontener widgetu (tam gdzie są input i buttony)
+      const event = new CustomEvent('updated', { //"update" to nazwa customowego eventu
+        bubbles: true // włączenie właściwości "bubbles": obiekt-event bąbelkuje (emituje) w górę po wszystkich elementach (a nie tylko po elemencie na, którym jest odpalany)
+      });
+
+      thisWidget.dom.element.dispatchEvent(event); //metoda "dispatchEvent", odpalana na "thisWidget.dom.element," wysyła obiekt-event do "event listenera" z informacją o ustawieniu wartości w widget
     }
   }
   /* *********************************************************************************************************************************************************************************************************************************************************************************** */
@@ -371,6 +374,15 @@
         event.preventDefault();
         thisCart.dom.wrapper.classList.toggle(classNames.cart.wrapperActive);
       });
+
+      thisCart.dom.productList.addEventListener('updated', function(){ //nasłuchiwanie "productList", w której umieszczone są produkty "CartProduct", w którch jest widget "amountWidget", który generuje event
+        thisCart.update(); //ponowne przelicznie kwoty
+      });
+
+      thisCart.dom.productList.addEventListener('remove', function(event){
+        //event.preventDefault();
+        thisCart.delete(event.detail.cartProduct); //przekazanie jako argument referencji do instancji "thisCartProduct"
+      });
     }
 
     add(menuProduct){ //dodaje dane zamawianego produktu do koszyka; argument "menuProduct" zawiera referencję do obiektu "productSummary"
@@ -387,6 +399,17 @@
       thisCart.update();
     }
 
+    delete(cartProduct){
+      const thisCart = this;
+      // remove cartProduct HTML (DOM element)
+      cartProduct.dom.wrapper.remove();
+      //remove cartProduct reference form thisCart.products array
+      const indexOfcartProudct = thisCart.products.indexOf(cartProduct);
+      thisCart.products.splice(indexOfcartProudct, 1);
+      //run update()
+      thisCart.update();
+    }
+
     update(){ //przechodzi po wszyskich produktach w koszyku i sumuje kwoty
       const thisCart = this;
 
@@ -399,7 +422,7 @@
         subtotalPrice += product.price;
       }
 
-      if(totalNumber >= 0){ //sprawdzenie, czy zawartość koszyka nie jest pusta
+      if(totalNumber > 0){ //sprawdzenie, czy zawartość koszyka nie jest pusta
         thisCart.totalPrice = subtotalPrice + deliveryFee; //doliczenie opłaty za wysyłkę i zapisanie jej do właściwości "totalPrice" (mogą z niej korzystać inne metody)
 
         thisCart.dom.deliveryFee.innerHTML = deliveryFee;
@@ -408,8 +431,11 @@
       } else {
         thisCart.totalPrice = subtotalPrice;
 
-        thisCart.dom.totalPrice.innerHTML = thisCart.totalPrice;
+        thisCart.dom.deliveryFee.innerHTML = 0;
+        thisCart.dom.totalPrice[0].innerHTML = thisCart.totalPrice;
+        thisCart.dom.totalPrice[1].innerHTML = thisCart.totalPrice;
       }
+
       thisCart.dom.subtotalPrice.innerHTML = subtotalPrice;
       thisCart.dom.totalNumber.innerHTML = totalNumber;
     }
@@ -428,6 +454,7 @@
 
       thisCartProduct.getElements(element);
       thisCartProduct.initAmountWidget();
+      thisCartProduct.initActions();
     }
 
     getElements(element){
@@ -444,14 +471,41 @@
     initAmountWidget(){
       const thisCartProduct= this;
 
-      thisCartProduct.amountWidget = new AmountWidget(thisCartProduct.dom.amountWidget); //utworzenie instancji klasy "AmountWidget"; przypisanie do właściwości "amountWidget" referencji do instancji "AmountWidget"
+      thisCartProduct.amountWidget = new AmountWidget(thisCartProduct.dom.amountWidget, thisCartProduct.amount); //utworzenie instancji klasy "AmountWidget"; przypisanie do właściwości "amountWidget" referencji do instancji "AmountWidget"
 
-      thisCartProduct.dom.amountWidget.addEventListener('updated', function(event){ //nasłuchiwanie customowego eventu 'updated', który informuje instancje "CartProduct" o zmianie wartości w widget
+      thisCartProduct.dom.amountWidget.addEventListener('updated', function(event){ //nasłuchiwanie customowego obiekt-eventu 'updated', który informuje instancje "CartProduct" o zmianie wartości w widget
         event.preventDefault();
         thisCartProduct.amount = thisCartProduct.amountWidget.value; //przypisanie aktulnej wartości (czyli liczby sztuk) pobranej z właściwości "value" instancji "AmountWidget"
         thisCartProduct.price = thisCartProduct.priceSingle * thisCartProduct.amount;
 
         thisCartProduct.dom.price.innerHTML = thisCartProduct.price; //zaktualizowanie wartości elementu HTML
+      });
+    }
+
+    delete(){ //usuwa produkt z koszyka
+      const thisCartProduct = this;
+
+      const event = new CustomEvent('remove', {
+        bubbles: true,
+        detail: { //informacje, które są przekazywane wraz z eventem
+          cartProduct: thisCartProduct, //referencja do instancji, dla której kliknięto "remove"
+        },
+      });
+
+      thisCartProduct.dom.wrapper.dispatchEvent(event);
+    }
+
+    initActions(){
+      const thisCartProduct = this;
+
+      thisCartProduct.dom.edit.addEventListener('click', function(event){
+        event.preventDefault();
+
+      });
+
+      thisCartProduct.dom.remove.addEventListener('click', function(event){
+        event.preventDefault();
+        thisCartProduct.delete();
       });
     }
   }
