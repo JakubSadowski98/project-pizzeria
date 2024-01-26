@@ -1,5 +1,7 @@
 /* global Handlebars, utils, dataSource */ // eslint-disable-line no-unused-vars
 
+//const { name } = require("browser-sync");
+
 {
   'use strict';
   /* *********************************************************************************************************************************************************************************************************************************************************************************** */
@@ -370,12 +372,15 @@
       thisCart.dom.subtotalPrice = thisCart.dom.wrapper.querySelector(select.cart.subtotalPrice);
       thisCart.dom.totalPrice = thisCart.dom.wrapper.querySelectorAll(select.cart.totalPrice); //(!) zapisanie do tablicy referencja do dwóch elementów pokazującychy cenę końcową (total price)
       thisCart.dom.totalNumber = thisCart.dom.wrapper.querySelector(select.cart.totalNumber);
+      thisCart.dom.form = thisCart.dom.wrapper.querySelector(select.cart.form); //new
+      thisCart.dom.phone = thisCart.dom.wrapper.querySelector(select.cart.phone); //new
+      thisCart.dom.address = thisCart.dom.wrapper.querySelector(select.cart.address); //new
     }
 
     initActions(){ //rozwija/zwija koszyk
       const thisCart = this;
 
-      thisCart.dom.toggleTrigger.addEventListener('click', function(event){
+      thisCart.dom.toggleTrigger.addEventListener('click', function(event){ //nasłuchiwanie nagłówka koszyka (elementu o id="cart")
         event.preventDefault();
         thisCart.dom.wrapper.classList.toggle(classNames.cart.wrapperActive);
       });
@@ -385,9 +390,14 @@
       });
 
       thisCart.dom.productList.addEventListener('remove', function(event){
-        //event.preventDefault();
         thisCart.delete(event.detail.cartProduct); //przekazanie jako argument referencji do instancji "thisCartProduct"
       });
+
+      thisCart.dom.form.addEventListener('submit', function(event){ //nasłuchiwanie przycisku "ORDER" w koszyku
+        event.preventDefault();
+        thisCart.sendOrder();
+      });
+
     }
 
     add(menuProduct){ //dodaje dane zamawianego produktu do koszyka; argument "menuProduct" zawiera referencję do obiektu "productSummary"
@@ -419,33 +429,65 @@
       const thisCart = this;
 
       const deliveryFee = settings.cart.defaultDeliveryFee;
-      let totalNumber = 0; //całościowa liczba sztuk produktów
-      let subtotalPrice = 0; //zsumowana cena wszystkich produktów
+      thisCart.totalNumber = 0; //całościowa liczba sztuk produktów
+      thisCart.subtotalPrice = 0; //zsumowana cena wszystkich produktów
 
       for(let product of thisCart.products){ //iterowanie po wszystkich produktach w koszyku
-        totalNumber += product.amount;
-        subtotalPrice += product.price;
+        thisCart.totalNumber += product.amount;
+        thisCart.subtotalPrice += product.price;
       }
 
-      if(totalNumber > 0){ //sprawdzenie, czy zawartość koszyka nie jest pusta
-        thisCart.totalPrice = subtotalPrice + deliveryFee; //doliczenie opłaty za wysyłkę i zapisanie jej do właściwości "totalPrice" (mogą z niej korzystać inne metody)
+      if(thisCart.totalNumber > 0){ //sprawdzenie, czy zawartość koszyka nie jest pusta
+        thisCart.totalPrice = thisCart.subtotalPrice + deliveryFee; //doliczenie opłaty za wysyłkę i zapisanie jej do właściwości "totalPrice" (mogą z niej korzystać inne metody)
+        thisCart.deliveryFee = deliveryFee;
 
-        thisCart.dom.deliveryFee.innerHTML = deliveryFee;
+        thisCart.dom.deliveryFee.innerHTML = thisCart.deliveryFee;
         thisCart.dom.totalPrice[0].innerHTML = thisCart.totalPrice;
         thisCart.dom.totalPrice[1].innerHTML = thisCart.totalPrice;
       } else {
-        thisCart.totalPrice = subtotalPrice;
+        thisCart.totalPrice = thisCart.subtotalPrice;
+        thisCart.deliveryFee = 0;
 
         thisCart.dom.deliveryFee.innerHTML = 0;
         thisCart.dom.totalPrice[0].innerHTML = thisCart.totalPrice;
         thisCart.dom.totalPrice[1].innerHTML = thisCart.totalPrice;
       }
 
-      thisCart.dom.subtotalPrice.innerHTML = subtotalPrice;
-      thisCart.dom.totalNumber.innerHTML = totalNumber;
+      thisCart.dom.subtotalPrice.innerHTML = thisCart.subtotalPrice;
+      thisCart.dom.totalNumber.innerHTML = thisCart.totalNumber;
+    }
+
+    sendOrder(){ //wysyła dane zamówienia na serwer
+      const thisCart = this;
+
+      const url = settings.db.url + '/' + settings.db.orders; //adres endpointu
+
+      const payload = { //obiekt z danymi zamówienia do wysłania na serwer (tzw. ładudenk)
+        address: thisCart.dom.address.value,
+        phone: thisCart.dom.address.value,
+        totalPrice: thisCart.totalPrice,
+        subtotalPrice: thisCart.subtotalPrice,
+        totalNumber: thisCart.totalNumber,
+        deliveryFee: thisCart.deliveryFee,
+        products: [] //tablica obecnych w koszyku produktów
+      };
+
+      for(let prod of thisCart.products) {
+        payload.products.push(prod.getData());
+      }
+
+      const options = { //opcje konfigurujące request (zapytanie)
+        method: 'POST', //metoda służąca do wysylania danych na serwer
+        headers: {
+          'Content-Type': 'application/json', //poinformowanie serwera o tym, że dane przesyłane są w formie JSON
+        },
+        body: JSON.stringify(payload), //body - wysyłana treść; przekonwertowanie obiektu "payloud" na postać JSON
+      };
+
+      fetch(url, options); //wysłanie zapytania do serwera
     }
   }
-
+  /* *********************************************************************************************************************************************************************************************************************************************************************************** */
   class CartProduct{ //obsługuje pojedyncze produkty, które znajdują się w koszyku
     constructor(menuProduct, element){ //arg1 - referencja do "productSummary", arg2 - referencja do "generatedDOM"
       const thisCartProduct= this;
@@ -471,6 +513,21 @@
       thisCartProduct.dom.price = thisCartProduct.dom.wrapper.querySelector(select.cartProduct.price);
       thisCartProduct.dom.edit = thisCartProduct.dom.wrapper.querySelector(select.cartProduct.edit);
       thisCartProduct.dom.remove = thisCartProduct.dom.wrapper.querySelector(select.cartProduct.remove);
+    }
+
+    getData(){ //przygotowuje obiekt posiadający niektóre właściwości instancji "CartProduct" potrzebne do wysłania na serwer
+      const thisCartProduct = this;
+
+      const cartProductSummary = {
+        id: thisCartProduct.id,
+        amount: thisCartProduct.amount,
+        price: thisCartProduct.price,
+        priceSingle: thisCartProduct.priceSingle,
+        name: thisCartProduct.name,
+        params: thisCartProduct.params
+      };
+
+      return cartProductSummary;
     }
 
     initAmountWidget(){
@@ -528,11 +585,10 @@
     initData: function(){ //metoda, która pobiera dane z obiektu "dataSource" w pliku data.js
       const thisApp = this;
 
-      //thisApp.data = dataSource;
       thisApp.data = {};
       const url = settings.db.url + '/' + settings.db.products; //adres endpointu, pod którym serwer API udostępnia dane (listę produktów)
 
-      fetch(url) //wysłanie zapytania (request) do serwera API pod podany adres endpointu
+      fetch(url) //(!) wysłanie zapytania (request) do serwera API pod podany adres endpointu
         .then(function(rawResponse){ //funkcja schowana w metodzie "then" jest uruchamiana wtedy, gdy request się zakończy, a serwer API zwróci odpowiedź
           return rawResponse.json(); //surowa opdowiedź (rawresponse), w formacie JSON, jest konwertowana na obiekt JS-owy
         })
@@ -559,5 +615,5 @@
     },
   };
 
-  app.init();
+  app.init(); //załadowanie strony/aplikacji
 }
