@@ -6,7 +6,7 @@
   const select = {  //(!) referencje do elementów DOM
     templateOf: {
       menuProduct: "#template-menu-product",
-      cartProduct: '#template-cart-product', // CODE ADDED
+      cartProduct: '#template-cart-product',
     },
     containerOf: {
       menu: '#product-list',
@@ -27,12 +27,12 @@
     },
     widgets: {
       amount: {
-        input: 'input.amount', // CODE CHANGED
+        input: 'input.amount',
         linkDecrease: 'a[href="#less"]',
         linkIncrease: 'a[href="#more"]',
       },
     },
-    cart: { // CODE ADDED START
+    cart: {
       productList: '.cart__order-summary',
       toggleTrigger: '.cart__summary',
       totalNumber: `.cart__total-number`,
@@ -49,7 +49,7 @@
       price: '.cart__product-price',
       edit: '[href="#edit"]',
       remove: '[href="#remove"]',
-    }, // CODE ADDED END
+    },
   };
 
   const classNames = {
@@ -57,20 +57,25 @@
       wrapperActive: 'active',
       imageVisible: 'active',
     },
-    cart: { // CODE ADDED START
+    cart: {
       wrapperActive: 'active',
-    }, // CODE ADDED END
+    },
   };
 
   const settings = {
     amountWidget: {
       defaultValue: 1,
-      defaultMin: 1, // CODE CHANGED
-      defaultMax: 9, // CODE CHANGED
+      defaultMin: 1,
+      defaultMax: 9,
     },
-    cart: { // CODE ADDED START
+    cart: {
       defaultDeliveryFee: 20,
-    }, // CODE ADDED END
+    },
+    db: { //CODE ADDED START: konfguracja parametrów, które są potrzebne do łączenia się z API
+      url: '//localhost:3131', //link do serwera API
+      products: 'products', //link do kolekcji /products
+      orders: 'orders', //link do kolekcji /orders
+      }, //CODE ADDED END
   };
 
   const templates = {
@@ -514,15 +519,29 @@
     initMenu: function(){ //metoda, która pośredniczy w tworzeniu instancji wg szablonu klasy "Product", korzystajac z pobranych danych przez "initData"
       const thisApp = this;
 
-      for(let productData in thisApp.data.products){ //pętla przechodzi po właściwościach obiektu "products", czyli cake, breakfast, itd.
-        new Product(productData, thisApp.data.products[productData]); //instancję klasy tworzymy za pomocą słowa kluczowego new, nazwy klasy, oraz argumentów przekazywanych do konstruktora klasy (czyli klucz właściwości oraz wartość właściwości)
+      for(let productData in thisApp.data.products){ //pętla przechodzi po właściwościach (a konkretnie po kluczach "productData") obiektu "products", czyli cake, breakfast, itd.
+        //new Product(productData, thisApp.data.products[productData]); //instancję klasy tworzymy za pomocą słowa kluczowego new, nazwy klasy, oraz argumentów przekazywanych do konstruktora klasy (czyli klucz właściwości oraz wartość właściwości)
+        new Product(thisApp.data.products[productData].id, thisApp.data.products[productData]);
       }
     },
 
     initData: function(){ //metoda, która pobiera dane z obiektu "dataSource" w pliku data.js
       const thisApp = this;
 
-      thisApp.data = dataSource; //zapisanie pobranych danych do właściwości obieku "app", zatem będą one dostępne w całym obiekcie (również dla pozostałych metod tego obiektu)
+      //thisApp.data = dataSource;
+      thisApp.data = {};
+      const url = settings.db.url + '/' + settings.db.products; //adres endpointu, pod którym serwer API udostępnia dane (listę produktów)
+
+      fetch(url) //wysłanie zapytania (request) do serwera API pod podany adres endpointu
+        .then(function(rawResponse){ //funkcja schowana w metodzie "then" jest uruchamiana wtedy, gdy request się zakończy, a serwer API zwróci odpowiedź
+          return rawResponse.json(); //surowa opdowiedź (rawresponse), w formacie JSON, jest konwertowana na obiekt JS-owy
+        })
+        .then(function(parsedResponse){ //skonwertowana odpowiedź (parsedResponse) wyświetlana jest w konsoli
+          // save parsedResponse as thisApp.data.products
+          thisApp.data.products = parsedResponse; //pobrane dane z serwera zapisywane są da do właściwości obieku "app", zatem będą one dostępne w całym obiekcie (również dla pozostałych metod tego obiektu)
+          // execute initMenu method
+          thisApp.initMenu(); //uruchowmienie metody następuje po otrzymaniu danych (listy produktów) z serwera
+        });
     },
 
     initCart: function(){
@@ -536,7 +555,6 @@
       const thisApp = this;
 
       thisApp.initData();
-      thisApp.initMenu();
       thisApp.initCart();
     },
   };
